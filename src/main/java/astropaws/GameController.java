@@ -1,40 +1,37 @@
 package astropaws;
 
-import astropaws.model.*;
-import astropaws.view.audio.AudioEngine;
 import astropaws.controller.InputHandler;
+import astropaws.model.AnimalSpawner;
+import astropaws.model.AudioBeacon;
+import astropaws.model.Cat;
+import astropaws.model.Ship;
+import astropaws.model.Vector2D;
 import astropaws.view.GamePanel;
+import astropaws.view.audio.AudioEngine;
 import astropaws.view.audio.WavLoader;
-
-import static org.lwjgl.openal.AL10.*;
-import static org.lwjgl.openal.AL11.*;
 
 public class GameController {
 
-    private GamePanel gamePanel;
-    private Ship ship;
-    private InputHandler inputHandler;
-    private GameLoop gameLoop;
+    private final GamePanel gamePanel;
+    private final Ship ship;
+    private final InputHandler inputHandler;
+    private final GameLoop gameLoop;
 
-    private double lastAngle = 0;
-    private double rotationAccumulator = 0;
+    private double lastAngle = 0.0;
+    private double rotationAccumulator = 0.0;
 
-    private AudioEngine audioEngine;
-    private AnimalSpawner spawner;
+    private final AudioEngine audioEngine;
+    private final AnimalSpawner spawner;
 
     public GameController() {
-
         audioEngine = new AudioEngine();
         audioEngine.init();
 
-        var meow = WavLoader.load("Audio/Meow.wav");
+        WavLoader.WavData meow = WavLoader.load("Audio/Meow.wav");
         audioEngine.loadSound("meow", meow.pcm, meow.sampleRate);
 
         audioEngine.createSource("cat", "meow", false, 1.0f);
         audioEngine.setLooping("cat", false);
-
-        alDopplerFactor(1.0f);
-        alSpeedOfSound(343.3f);
 
         gamePanel = new GamePanel();
 
@@ -60,7 +57,7 @@ public class GameController {
     private class GameLoop extends Thread {
 
         private static final int FPS = 60;
-        private static final long FRAME_TIME = 1000 / FPS;
+        private static final long FRAME_TIME_MS = 1000L / FPS;
 
         @Override
         public void run() {
@@ -69,7 +66,7 @@ public class GameController {
             while (true) {
                 long now = System.currentTimeMillis();
 
-                if (now - lastTime >= FRAME_TIME) {
+                if (now - lastTime >= FRAME_TIME_MS) {
                     update();
                     gamePanel.repaint();
                     lastTime = now;
@@ -77,12 +74,12 @@ public class GameController {
 
                 try {
                     Thread.sleep(1);
-                } catch (InterruptedException ignored) {}
+                } catch (InterruptedException ignored) {
+                }
             }
         }
 
         private void update() {
-
             if (inputHandler.isLeftPressed()) ship.rotateLeft();
             if (inputHandler.isRightPressed()) ship.rotateRight();
             if (inputHandler.isThrustPressed()) ship.thrust();
@@ -91,7 +88,7 @@ public class GameController {
 
             double currentAngle = ship.getAngle();
             double delta = Math.abs(currentAngle - lastAngle);
-            if (delta > Math.PI) delta = (2 * Math.PI) - delta;
+            if (delta > Math.PI) delta = (2.0 * Math.PI) - delta;
             rotationAccumulator += delta;
             lastAngle = currentAngle;
 
@@ -100,53 +97,44 @@ public class GameController {
             AudioBeacon beacon = spawner.getBeacon();
 
             gamePanel.setCat(cat);
-
             if (cat == null || beacon == null) return;
 
-            // Listener
-            alListener3f(
-                    AL_POSITION,
-                    (float) ship.getPosition().x,
-                    0f,
-                    (float) ship.getPosition().y
+            Vector2D forward = ship.getForwardVector();
+
+            audioEngine.setListenerPosition(
+                    (float) ship.getPosition().x, 0f, (float) ship.getPosition().y
             );
 
-            // Source
+            audioEngine.setListenerOrientation(
+                    (float) forward.x, 0f, (float) forward.y,
+                    0f, 1f, 0f
+            );
+
             audioEngine.setSourcePosition(
                     "cat",
-                    (float) beacon.getPosition().x,
-                    0f,
-                    (float) beacon.getPosition().y
+                    (float) beacon.getPosition().x, 0f, (float) beacon.getPosition().y
             );
-
-            // Facing math
-            Vector2D forward = ship.getForwardVector();
-            double shipFx = Math.cos(ship.getAngle());
-            double shipFy = -Math.sin(ship.getAngle());
-
 
             double toCatX = beacon.getPosition().x - ship.getPosition().x;
             double toCatY = beacon.getPosition().y - ship.getPosition().y;
 
-            double distance = Math.sqrt(toCatX * toCatX + toCatY * toCatY);
-            if (distance > 0) {
-                toCatX /= distance;
-                toCatY /= distance;
+            double dist = Math.sqrt(toCatX * toCatX + toCatY * toCatY);
+            if (dist > 0.0) {
+                toCatX /= dist;
+                toCatY /= dist;
             }
 
-            double dot = shipFx * toCatX + shipFy * toCatY;
+            double dot = forward.x * toCatX + forward.y * toCatY;
 
-
-            //PASS DEBUG INFO TO PANEL
             gamePanel.setDebugData(
                     beacon.getPosition().x,
                     beacon.getPosition().y,
                     dot
             );
 
-            if (rotationAccumulator > Math.toRadians(10) && dot > 0.3) {
+            if (rotationAccumulator > Math.toRadians(10.0) && dot > 0.995) {
                 audioEngine.play("cat");
-                rotationAccumulator = 0;
+                rotationAccumulator = 0.0;
             }
         }
     }

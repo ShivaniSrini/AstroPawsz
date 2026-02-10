@@ -41,11 +41,8 @@ public class Ship {
     }
 
     public Vector2D getForwardVector() {
-        double visualAngle = angle;
-        Vector2D v = new Vector2D(
-                Math.cos(visualAngle),
-                Math.sin(visualAngle)
-        );
+        double visualAngle = angle + Math.PI / 2.0; // MUST match render()
+        Vector2D v = new Vector2D(Math.cos(visualAngle), Math.sin(visualAngle));
         v.normalize();
         return v;
     }
