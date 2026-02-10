@@ -33,7 +33,7 @@ public class AudioEngine {
         AL.createCapabilities(ALC.createCapabilities(device));
 
         // Distance model (slides 20–22)
-        alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
+        alDistanceModel(AL_NONE);
 
         // Doppler (slide 25)
         alDopplerFactor(1.0f);
@@ -82,7 +82,7 @@ public class AudioEngine {
 
         // Attenuation tuning (slides 19–23)
         alSourcef(source, AL_REFERENCE_DISTANCE, 1.0f);
-        alSourcef(source, AL_ROLLOFF_FACTOR, 1.2f);
+        alSourcef(source, AL_ROLLOFF_FACTOR, 0.0f);
         alSourcef(source, AL_MAX_DISTANCE, 50.0f);
 
         alSource3f(source, AL_POSITION, 0f, 0f, 0f);
@@ -93,7 +93,10 @@ public class AudioEngine {
 
     public void play(String sourceId) {
         Integer source = sources.get(sourceId);
-        if (source != null) {
+        if (source == null) return;
+
+        int state = alGetSourcei(source, AL_SOURCE_STATE);
+        if (state != AL_PLAYING) {
             alSourcePlay(source);
         }
     }

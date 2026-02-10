@@ -1,7 +1,6 @@
 package astropaws.view;
 
-import astropaws.model.Ship;
-import astropaws.model.Cat;
+import astropaws.model.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -18,7 +17,7 @@ public class GamePanel extends JPanel {
     private Cat cat;
     private BufferedImage backgroundImage;
 
-    // 🔥 DEBUG DATA FROM CONTROLLER
+    // DEBUG DATA FROM CONTROLLER
     private double beaconX;
     private double beaconY;
     private double dotProduct;
@@ -44,7 +43,7 @@ public class GamePanel extends JPanel {
         this.cat = cat;
     }
 
-    // 🔥 CALLED EVERY FRAME
+    // CALLED EVERY FRAME
     public void setDebugData(double bx, double by, double dot) {
         this.beaconX = bx;
         this.beaconY = by;
@@ -89,18 +88,22 @@ public class GamePanel extends JPanel {
         );
 
         // Ship forward vector
-        float fx = (float) Math.cos(ship.getAngle());
-        float fy = (float) Math.sin(ship.getAngle());
+        Vector2D fwd = ship.getForwardVector();
+        float fx = (float) fwd.x;
+        float fy = (float) fwd.y;
 
         int len = 50;
         int endX = (int) (shipX + fx * len);
         int endY = (int) (shipY + fy * len);
 
 
-        g2d.setColor(dotProduct > 0.3 ? Color.GREEN : Color.RED);
+        g2d.setColor(dotProduct > 0.995 ? Color.GREEN : Color.RED);
         g2d.drawLine(
                 (int) shipX, (int) shipY,
                 endX, endY
         );
+
+        g2d.setStroke(new BasicStroke(2));
+
     }
 }
