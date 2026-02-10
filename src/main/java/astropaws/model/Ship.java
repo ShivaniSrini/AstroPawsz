@@ -10,10 +10,10 @@ public class Ship {
     private Vector2D position;
     private Vector2D velocity;
     private double angle; // in radians
-    private double rotationSpeed = 0.1;
+    private double rotationSpeed = 0.03;
     private double acceleration = 0.3;
     private double maxSpeed = 12.0;
-    private double friction = 0.2;
+    private double friction = 0.3;
 
     private BufferedImage shipImage;
     private static final int SHIP_WIDTH = 70;
@@ -26,7 +26,7 @@ public class Ship {
     public Ship(double x, double y) {
         this.position = new Vector2D(x, y);
         this.velocity = new Vector2D(0, 0);
-        this.angle = Math.PI * 2; // pointing up
+        this.angle = -Math.PI; // pointing up
 
         // Load ship image
         try {
@@ -56,15 +56,9 @@ public class Ship {
     }
 
     public void thrust() {
-        //Vector2D force = new Vector2D(
-          //      Math.cos(angle) * acceleration,
-            //    Math.sin(angle) * acceleration
-        //);
-       // velocity.add(force);
-       // velocity.limit(maxSpeed);
-            // Move at a fixed speed in the direction of the ship
-            velocity.x = Math.cos(angle) * maxSpeed;
-            velocity.y = Math.sin(angle) * maxSpeed;
+        Vector2D fwd = getForwardVector();
+        velocity.x = fwd.x * maxSpeed;
+        velocity.y = fwd.y * maxSpeed;
     }
 
     public void update(int screenWidth, int screenHeight) {

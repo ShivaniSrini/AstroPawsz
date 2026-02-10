@@ -101,6 +101,20 @@ public class AudioEngine {
         }
     }
 
+    public void stop(String sourceId) {
+        Integer source = sources.get(sourceId);
+        if (source != null) {
+            alSourceStop(source);
+        }
+    }
+
+    public boolean isPlaying(String sourceId) {
+        Integer source = sources.get(sourceId);
+        if (source == null) return false;
+        return alGetSourcei(source, AL_SOURCE_STATE) == AL_PLAYING;
+    }
+
+
     public void setSourcePosition(String sourceId, float x, float y, float z) {
         Integer source = sources.get(sourceId);
         if (source != null) {
