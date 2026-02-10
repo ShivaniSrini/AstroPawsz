@@ -33,6 +33,9 @@ public class GameController {
         audioEngine.createSource("cat", "meow", false, 1.0f);
         audioEngine.setLooping("cat", false);
 
+        audioEngine.createSource("beacon", "meow", true, 0.08f);
+        audioEngine.setLooping("beacon", true);
+
         gamePanel = new GamePanel();
 
         ship = new Ship(GamePanel.WIDTH / 2.0, GamePanel.HEIGHT / 2.0);
@@ -97,7 +100,17 @@ public class GameController {
             AudioBeacon beacon = spawner.getBeacon();
 
             gamePanel.setCat(cat);
-            if (cat == null || beacon == null) return;
+
+            if (cat == null || beacon == null) {
+                if (audioEngine.isPlaying("beacon")) {
+                    audioEngine.stop("beacon");
+                }
+                return;
+            } else {
+                if (!audioEngine.isPlaying("beacon")) {
+                    audioEngine.play("beacon");
+                }
+            }
 
             Vector2D forward = ship.getForwardVector();
 
@@ -114,6 +127,12 @@ public class GameController {
                     "cat",
                     (float) beacon.getPosition().x, 0f, (float) beacon.getPosition().y
             );
+
+            audioEngine.setSourcePosition(
+                    "beacon",
+                    (float) beacon.getPosition().x, 0f, (float) beacon.getPosition().y
+            );
+
 
             double toCatX = beacon.getPosition().x - ship.getPosition().x;
             double toCatY = beacon.getPosition().y - ship.getPosition().y;
