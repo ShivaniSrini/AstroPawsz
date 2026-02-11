@@ -143,4 +143,30 @@ public class AudioEngine {
         }
     }
 
+    public void setSourcePitch(String sourceId, float pitch) {
+        Integer source = sources.get(sourceId);
+        if (source != null) {
+            alSourcef(source, AL_PITCH, pitch);
+        }
+    }
+
+    public void setSourceGain(String sourceId, float gain) {
+        Integer source = sources.get(sourceId);
+        if (source != null) {
+            alSourcef(source, AL_GAIN, gain);
+        }
+    }
+
+    public void setListenerVelocity(float x, float y, float z) {
+        alListener3f(AL_VELOCITY, x, y, z);
+    }
+
+    public void setSourceVelocity(String sourceId, float x, float y, float z) {
+        Integer source = sources.get(sourceId);
+        if (source != null) {
+            alSource3f(source, AL_VELOCITY, x, y, z);
+        }
+    }
+
+
 }
