@@ -20,6 +20,9 @@ public class GameController {
     private double lastAngle = 0.0;
     private double rotationAccumulator = 0.0;
 
+    private Vector2D lastShipPos = null;
+    private long lastVelTimeMs = 0;
+
     private final AudioEngine audioEngine;
     private final AnimalSpawner spawner;
 
@@ -27,13 +30,16 @@ public class GameController {
         audioEngine = new AudioEngine();
         audioEngine.init();
 
-        WavLoader.WavData meow = WavLoader.load("Audio/Meow.wav");
+        WavLoader.WavData meow = WavLoader.load("Audio/meow.wav");
         audioEngine.loadSound("meow", meow.pcm, meow.sampleRate);
+
+        WavLoader.WavData beacon = WavLoader.load("Audio/beacon.wav");
+        audioEngine.loadSound("beacon", beacon.pcm, beacon.sampleRate);
 
         audioEngine.createSource("cat", "meow", false, 1.0f);
         audioEngine.setLooping("cat", false);
 
-        audioEngine.createSource("beacon", "meow", true, 0.08f);
+        audioEngine.createSource("beacon", "beacon", true, 0.08f);
         audioEngine.setLooping("beacon", true);
 
         gamePanel = new GamePanel();
@@ -105,11 +111,36 @@ public class GameController {
                 if (audioEngine.isPlaying("beacon")) {
                     audioEngine.stop("beacon");
                 }
+                // Reset velocity tracking so next spawn doesn't produce a huge jump
+                lastShipPos = null;
+                lastVelTimeMs = 0;
                 return;
             } else {
                 if (!audioEngine.isPlaying("beacon")) {
                     audioEngine.play("beacon");
                 }
+            }
+
+            // Step 3: Doppler requires listener velocity
+            long nowMs = System.currentTimeMillis();
+            if (lastShipPos == null) {
+                lastShipPos = ship.getPosition().copy();
+                lastVelTimeMs = nowMs;
+                audioEngine.setListenerVelocity(0f, 0f, 0f);
+            } else {
+                long dtMs = nowMs - lastVelTimeMs;
+                if (dtMs <= 0) dtMs = 1;
+
+                double dt = dtMs / 1000.0;
+                double vx = (ship.getPosition().x - lastShipPos.x) / dt;
+                double vy = (ship.getPosition().y - lastShipPos.y) / dt;
+
+                // 2D (x,y) -> OpenAL (x,z)
+                audioEngine.setListenerVelocity((float) vx, 0f, (float) vy);
+
+                lastShipPos.x = ship.getPosition().x;
+                lastShipPos.y = ship.getPosition().y;
+                lastVelTimeMs = nowMs;
             }
 
             Vector2D forward = ship.getForwardVector();
@@ -133,6 +164,9 @@ public class GameController {
                     (float) beacon.getPosition().x, 0f, (float) beacon.getPosition().y
             );
 
+            // Step 3: source velocity (cat/beacon are stationary for now)
+            audioEngine.setSourceVelocity("cat", 0f, 0f, 0f);
+            audioEngine.setSourceVelocity("beacon", 0f, 0f, 0f);
 
             double toCatX = beacon.getPosition().x - ship.getPosition().x;
             double toCatY = beacon.getPosition().y - ship.getPosition().y;
@@ -144,6 +178,15 @@ public class GameController {
             }
 
             double dot = forward.x * toCatX + forward.y * toCatY;
+
+            double clamped = Math.max(-1.0, Math.min(1.0, dot));
+            double t = (clamped + 1.0) / 2.0;
+
+            float pitch = (float) (0.6 + 1.0 * t);   // 0.6 .. 1.6
+            float gain = (float) (0.04 + 0.10 * t);  // 0.04 .. 0.14
+
+            audioEngine.setSourcePitch("beacon", pitch);
+            audioEngine.setSourceGain("beacon", gain);
 
             gamePanel.setDebugData(
                     beacon.getPosition().x,
