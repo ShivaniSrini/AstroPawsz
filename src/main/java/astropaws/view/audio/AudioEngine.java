@@ -16,6 +16,10 @@ public class AudioEngine {
     private long device;
     private long context;
 
+    // Scale pixels → OpenAL world units (meters)
+    // 800px ≈ 8 meters
+    private static final float WORLD_SCALE = 0.01f;
+
     private final Map<String, Integer> buffers = new HashMap<>();
     private final Map<String, Integer> sources = new HashMap<>();
 
@@ -32,16 +36,16 @@ public class AudioEngine {
 
         AL.createCapabilities(ALC.createCapabilities(device));
 
-        // Distance model (slides 20–22)
-        alDistanceModel(AL_NONE);
+        // Stronger distance model (better for blind-first gameplay)
+        alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
 
-        // Doppler (slide 25)
+        // Doppler configuration
         alDopplerFactor(1.0f);
         alSpeedOfSound(343.3f);
 
         // Listener defaults
         setListenerPosition(0f, 0f, 0f);
-        setListenerOrientation(0, 1, 0, 0, 0, -1);
+        setListenerOrientation(0, 0, -1, 0, 1, 0);
 
         System.out.println("OpenAL initialized successfully");
     }
@@ -49,14 +53,18 @@ public class AudioEngine {
     // ---------- LISTENER ----------
 
     public void setListenerPosition(float x, float y, float z) {
-        alListener3f(AL_POSITION, x, y, z);
+        alListener3f(AL_POSITION, x * WORLD_SCALE, y * WORLD_SCALE, z * WORLD_SCALE);
+    }
+
+    public void setListenerVelocity(float x, float y, float z) {
+        alListener3f(AL_VELOCITY, x * WORLD_SCALE, y * WORLD_SCALE, z * WORLD_SCALE);
     }
 
     public void setListenerOrientation(
             float atX, float atY, float atZ,
             float upX, float upY, float upZ
     ) {
-        float[] orientation = new float[] {
+        float[] orientation = new float[]{
                 atX, atY, atZ,
                 upX, upY, upZ
         };
@@ -80,10 +88,10 @@ public class AudioEngine {
         alSourcei(source, AL_LOOPING, looping ? AL_TRUE : AL_FALSE);
         alSourcef(source, AL_GAIN, gain);
 
-        // Attenuation tuning (slides 19–23)
-        alSourcef(source, AL_REFERENCE_DISTANCE, 1.0f);
-        alSourcef(source, AL_ROLLOFF_FACTOR, 0.0f);
-        alSourcef(source, AL_MAX_DISTANCE, 50.0f);
+        // Distance tuning (scaled to pixel world)
+        alSourcef(source, AL_REFERENCE_DISTANCE, 1.0f);  // 1 meter (~100px)
+        alSourcef(source, AL_ROLLOFF_FACTOR, 2.5f);      // stronger falloff
+        alSourcef(source, AL_MAX_DISTANCE, 20.0f);       // 20 meters (~2000px)
 
         alSource3f(source, AL_POSITION, 0f, 0f, 0f);
         alSource3f(source, AL_VELOCITY, 0f, 0f, 0f);
@@ -101,6 +109,15 @@ public class AudioEngine {
         }
     }
 
+    public void playFromStart(String sourceId) {
+        Integer source = sources.get(sourceId);
+        if (source != null) {
+            alSourceStop(source);
+            alSourceRewind(source);
+            alSourcePlay(source);
+        }
+    }
+
     public void stop(String sourceId) {
         Integer source = sources.get(sourceId);
         if (source != null) {
@@ -114,32 +131,27 @@ public class AudioEngine {
         return alGetSourcei(source, AL_SOURCE_STATE) == AL_PLAYING;
     }
 
-
     public void setSourcePosition(String sourceId, float x, float y, float z) {
         Integer source = sources.get(sourceId);
         if (source != null) {
-            alSource3f(source, AL_POSITION, x, y, z);
+            alSource3f(source,
+                    AL_POSITION,
+                    x * WORLD_SCALE,
+                    y * WORLD_SCALE,
+                    z * WORLD_SCALE
+            );
         }
     }
 
-    // ---------- CLEANUP ----------
-
-    public void cleanup() {
-        for (int source : sources.values()) {
-            alDeleteSources(source);
-        }
-        for (int buffer : buffers.values()) {
-            alDeleteBuffers(buffer);
-        }
-
-        alcDestroyContext(context);
-        alcCloseDevice(device);
-    }
-
-    public void setLooping(String sourceId, boolean loop) {
+    public void setSourceVelocity(String sourceId, float x, float y, float z) {
         Integer source = sources.get(sourceId);
         if (source != null) {
-            alSourcei(source, AL_LOOPING, loop ? AL_TRUE : AL_FALSE);
+            alSource3f(source,
+                    AL_VELOCITY,
+                    x * WORLD_SCALE,
+                    y * WORLD_SCALE,
+                    z * WORLD_SCALE
+            );
         }
     }
 
@@ -157,16 +169,24 @@ public class AudioEngine {
         }
     }
 
-    public void setListenerVelocity(float x, float y, float z) {
-        alListener3f(AL_VELOCITY, x, y, z);
-    }
-
-    public void setSourceVelocity(String sourceId, float x, float y, float z) {
+    public void setLooping(String sourceId, boolean loop) {
         Integer source = sources.get(sourceId);
         if (source != null) {
-            alSource3f(source, AL_VELOCITY, x, y, z);
+            alSourcei(source, AL_LOOPING, loop ? AL_TRUE : AL_FALSE);
         }
     }
 
+    // ---------- CLEANUP ----------
 
+    public void cleanup() {
+        for (int source : sources.values()) {
+            alDeleteSources(source);
+        }
+        for (int buffer : buffers.values()) {
+            alDeleteBuffers(buffer);
+        }
+
+        alcDestroyContext(context);
+        alcCloseDevice(device);
+    }
 }

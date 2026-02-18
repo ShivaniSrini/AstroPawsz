@@ -4,7 +4,7 @@ import java.util.Random;
 
 public class AnimalSpawner {
 
-    private static final int ACTIVE_DURATION_MS = 8000;
+    private static final int ACTIVE_DURATION_MS = 15000;
 
     private Cat currentCat;
     private AudioBeacon beacon;
@@ -55,6 +55,11 @@ public class AnimalSpawner {
 
     public AudioBeacon getBeacon() {
         return beacon;
+    }
+    public void despawnNow() {
+        currentCat = null;
+        beacon = null;
+        active = false;
     }
 
     public boolean isActive() {

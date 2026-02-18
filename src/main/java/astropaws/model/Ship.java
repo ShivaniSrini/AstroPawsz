@@ -55,6 +55,15 @@ public class Ship {
         angle += rotationSpeed;
     }
 
+    public void rotateLeft(double multiplier) {
+        angle -= rotationSpeed * multiplier;
+    }
+
+    public void rotateRight(double multiplier) {
+        angle += rotationSpeed * multiplier;
+    }
+
+
     public void thrust() {
         Vector2D fwd = getForwardVector();
         velocity.x = fwd.x * maxSpeed;
