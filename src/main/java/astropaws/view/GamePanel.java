@@ -49,6 +49,11 @@ public class GamePanel extends JPanel {
         this.beaconY = by;
         this.dotProduct = dot;
     }
+    @Override
+    public void addNotify() {
+        super.addNotify();
+        requestFocusInWindow();
+    }
 
     @Override
     protected void paintComponent(Graphics g) {
